@@ -1,7 +1,13 @@
 FROM wordpress:4.9-php5.6-apache
 
 RUN apt-get update \
-	&& apt-get install -y libmemcached-dev tidy csstidy zlib1g-dev \
+	&& apt-get install -y \
+        sudo \
+        mysql-client \
+        libmemcached-dev \
+        tidy \
+        csstidy \
+        zlib1g-dev \
 	&& mkdir -p /usr/src/php/ext
 
 RUN curl -o memcached.tgz -SL http://pecl.php.net/get/memcached-2.2.0.tgz \
@@ -26,6 +32,10 @@ RUN docker-php-ext-install memcached \
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
     && chmod +x wp-cli.phar \
     && mv wp-cli.phar /usr/local/bin/wp
+
+RUN echo "alias wp='sudo -u www-data wp'" >> /root/.bashrc \
+    && sed -i "s/# alias l/alias l/g" /root/.bashrc
+
 
 COPY ./etc/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 COPY ./etc/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
