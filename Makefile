@@ -8,48 +8,47 @@ LOCAL_BACKUP_PATH:=~/var/dokku_backup
 
 init-host:
 	# setup MariaDB
-	# ! requires: sudo dokku plugin:install https://github.com/dokku/dokku-mariadb.git mariadb
-	ssh -t dokku@breton.ch mariadb:create ${DOKKU_MARIADB_SERVICE}
+	ssh -t dokku@${DOKKU_HOST} mariadb:create ${DOKKU_MARIADB_SERVICE} || true
 	# pull initial docker image for Wordpress
-	docker pull wordpress:4.9-php5.6-apache
+	ssh ${DOKKU_HOST} docker pull wordpress:4.9-php5.6-apache
 	# and tag it on host to make it available to dokku
-	docker tag wordpress:4.9-php5.6-apache dokku/wordpress:4.9-fpm-alpine
+	ssh ${DOKKU_HOST} docker tag wordpress:4.9-php5.6-apache dokku/wordpress:4.9-fpm-alpine
 
 ###
 # CREATE & DESTROY
 
 create: validate-app
 	# create an app and set environment variable+port before 1st deployment
-	ssh -t dokku@breton.ch apps:create ${NAME}
-	ssh -t dokku@breton.ch config:set ${NAME} WORDPRESS_DB_HOST=dokku-mariadb-${DOKKU_MARIADB_SERVICE}
+	ssh -t dokku@${DOKKU_HOST} apps:create ${NAME}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WORDPRESS_DB_HOST=dokku-mariadb-${DOKKU_MARIADB_SERVICE}
 	# link with DB
-	ssh -t dokku@breton.ch mariadb:link ${DOKKU_MARIADB_SERVICE} ${NAME}
+	ssh -t dokku@${DOKKU_HOST} mariadb:link ${DOKKU_MARIADB_SERVICE} ${NAME}
 	# push app from docker up image wordpress:alpine
 	git push ${NAME} master
 	# switch to HTTPs
-	ssh -t dokku@breton.ch letsencrypt ${NAME}
+	ssh -t dokku@${DOKKU_HOST} letsencrypt ${NAME}
 	# mount volume for images
-	ssh -t dokku@breton.ch storage:mount ${NAME} /var/lib/dokku/data/storage/${NAME}:/var/www
-	ssh -t dokku@breton.ch ps:restart ${NAME}
+	ssh -t dokku@${DOKKU_HOST} storage:mount ${NAME} /var/lib/dokku/data/storage/${NAME}:/var/www
+	ssh -t dokku@${DOKKU_HOST} ps:restart ${NAME}
 
 destroy: validate-app
-	ssh -t dokku@breton.ch apps:destroy ${NAME}
+	ssh -t dokku@${DOKKU_HOST} apps:destroy ${NAME}
 	git remote remove ${NAME}
 
 ###
 # MONITORING
 
 apps:
-	ssh -t dokku@breton.ch apps:report ${NAME}
+	ssh -t dokku@${DOKKU_HOST} apps:report ${NAME}
 
 domains:
-	ssh -t dokku@breton.ch domains:report ${NAME}
+	ssh -t dokku@${DOKKU_HOST} domains:report ${NAME}
 
 proxy:
-	ssh -t dokku@breton.ch proxy:report ${NAME}
+	ssh -t dokku@${DOKKU_HOST} proxy:report ${NAME}
 
 storage:
-	ssh -t dokku@breton.ch storage:report ${NAME}
+	ssh -t dokku@${DOKKU_HOST} storage:report ${NAME}
 
 ###
 # BACKUP & RESTORE
@@ -72,3 +71,21 @@ validate-app:
 ifndef NAME
 	$(error NAME is not set)
 endif
+
+###
+# local testing
+
+mariadb:
+	docker run --rm --name maria -e MYSQL_ROOT_PASSWORD=secret -d mariadb || true
+
+stop:
+	docker stop wp || true
+
+build: stop
+	docker build -t ebreton/wp .
+
+wp: mariadb build
+	docker run --rm --name wp -d -p 8080:80 -e DATABASE_URL=mysql://root:secret@maria/wp ebreton/wp:latest
+
+init: wp
+	docker exec wp init.sh
