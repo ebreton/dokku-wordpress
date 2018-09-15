@@ -73,7 +73,7 @@ ifndef NAME
 endif
 
 ###
-# local testing
+# LOCAL TESTING
 
 mariadb:
 	docker run --rm --name maria -e MYSQL_ROOT_PASSWORD=secret -d mariadb || true
@@ -81,11 +81,27 @@ mariadb:
 stop:
 	docker stop wp || true
 
+reset: stop
+	docker exec maria mysql -u root --password=secret -e "DROP DATABASE IF EXISTS wp;"
+
 build: stop
 	docker build -t ebreton/wp .
 
 wp: mariadb build
-	docker run --rm --name wp -d -p 8080:80 -e DATABASE_URL=mysql://root:secret@maria/wp ebreton/wp:latest
+	docker run --rm --link maria --name wp -d -p 8080:80 \
+		-e DATABASE_URL=mysql://root:secret@maria/wp \
+		-e SITE_URL=localhost:8080 \
+		-e SITE_TITLE='Dokku WP' \
+		-e WP_USER=admin \
+		-e WP_PASSWORD=admin \
+		-e WP_EMAIL=wp@example.com \
+		ebreton/wp:latest
 
 init: wp
 	docker exec wp init.sh
+
+is-installed:
+	docker exec wp sudo -u www-data wp core is-installed
+
+exec:
+	docker exec -it wp bash
