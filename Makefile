@@ -28,9 +28,9 @@ create: validate-app
 	# create an app and set environment variable+port before 1st deployment
 	ssh -t dokku@${DOKKU_HOST} apps:create ${NAME}
 	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_URL=${SITE_URL}
-	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_TITLE=${SITE_TITLE}
-	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_USER=${WP_USER}
-	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_PASSWORD=${WP_PASSWORD}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_TITLE=\"${SITE_TITLE}\"
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_USER=\"${WP_USER}\"
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_PASSWORD=\"${WP_PASSWORD}\"
 	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_EMAIL=${WP_EMAIL}
 	# link with DB
 	ssh -t dokku@${DOKKU_HOST} mariadb:link ${DOKKU_MARIADB_SERVICE} ${NAME}
@@ -42,6 +42,8 @@ create: validate-app
 	# mount volume for images
 	ssh -t dokku@${DOKKU_HOST} storage:mount ${NAME} /var/lib/dokku/data/storage/${NAME}:/var/www/html
 	ssh -t dokku@${DOKKU_HOST} ps:restart ${NAME}
+	# initialize WP
+	ssh -t dokku@${DOKKU_HOST} run ${NAME} init.sh
 
 destroy: validate-app
 	ssh -t dokku@${DOKKU_HOST} apps:destroy ${NAME}
