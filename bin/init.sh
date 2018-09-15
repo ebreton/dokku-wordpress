@@ -26,5 +26,11 @@ echo "  host: $hostname"
 echo "  port: $port"
 echo "  path: $path"
 
+# create db
+mysql -u $user -h $hostname --password=$pass -e "CREATE DATABASE IF NOT EXISTS $path;"
+
 # create wp-config.php file
-wp config create  --dbuser=$user --dbpass=$pass --dbhost=$hostname --dbport=$port  --dbname=$path
+sudo -u www-data wp config create --dbuser=$user --dbpass=$pass --dbhost=$hostname --dbname=$path
+
+# install WP
+sudo -u www-data wp core install --url="${SITE_URL}" --title="${SITE_TITLE}" --admin_user="${WP_USER}" --admin_password="${WP_PASSWORD}" --admin_email=${WP_EMAIL} --skip-email
