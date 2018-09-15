@@ -37,8 +37,4 @@ function mail_relay( \$phpmailer ) {
     \$phpmailer->FromName = ${FROM_NAME};
 }" >> /var/www/html/wp-config.php
 
-sed -i "s/<?php/<?php\n\ndefine( 'WP_CACHE_KEY_SALT', '${WORDPRESS_DB_NAME}' );\ndefine( 'WP_CACHE', true );\n\n\$memcached_servers = array(\n    'default' => array(\n        'memcached:11211'\n    )\n);\n\n\$url = parse_url(getenv('DATABASE_URL'));\n/" /var/www/html/wp-config.php
-sed -i "s/'DB_NAME', 'DB_NAME'/'DB_NAME', trim(\$url['path'], '\/')/" /var/www/html/wp-config.php
-sed -i "s/'DB_USER', 'DB_USER'/'DB_USER', trim(\$url['user'])/" /var/www/html/wp-config.php
-sed -i "s/'DB_PASSWORD', 'DB_PASSWORD'/'DB_PASSWORD', trim(\$url['pass'])/" /var/www/html/wp-config.php
-sed -i "s/'DB_HOST', 'DB_HOST'/'DB_HOST', trim(\$url['host'])/" /var/www/html/wp-config.php
+sed -i "s/<?php/<?php\n\ndefine( 'WP_CACHE_KEY_SALT', '${WORDPRESS_DB_NAME}' );\ndefine( 'WP_CACHE', true );\n\n\$memcached_servers = array(\n    'default' => array(\n        'memcached:11211'\n    )\n);\n/" /var/www/html/wp-config.php
