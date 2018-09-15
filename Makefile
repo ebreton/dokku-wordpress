@@ -1,6 +1,13 @@
 DOKKU_HOST:=breton.ch
 DOKKU_MARIADB_SERVICE:=mysql
 
+SITE_URL:=https://${NAME}.${DOKKU_HOST}
+SITE_TITLE:=Dokku WP
+WP_USER:=admin
+WP_PASSWORD:=admin
+WP_EMAIL:=email@example.com
+
+
 LOCAL_BACKUP_PATH:=~/var/dokku_backup
 
 ###
@@ -20,15 +27,20 @@ init-host:
 create: validate-app
 	# create an app and set environment variable+port before 1st deployment
 	ssh -t dokku@${DOKKU_HOST} apps:create ${NAME}
-	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WORDPRESS_DB_HOST=dokku-mariadb-${DOKKU_MARIADB_SERVICE}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_URL=${SITE_URL}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_TITLE=${SITE_TITLE}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_USER=${WP_USER}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_PASSWORD=${WP_PASSWORD}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_EMAIL=${WP_EMAIL}
 	# link with DB
 	ssh -t dokku@${DOKKU_HOST} mariadb:link ${DOKKU_MARIADB_SERVICE} ${NAME}
-	# push app from docker up image wordpress:alpine
+	# add remote and push app to trigger deployment on host
+	git remote add ${NAME} dokku@${DOKKU_HOST}:${NAME}
 	git push ${NAME} master
 	# switch to HTTPs
 	ssh -t dokku@${DOKKU_HOST} letsencrypt ${NAME}
 	# mount volume for images
-	ssh -t dokku@${DOKKU_HOST} storage:mount ${NAME} /var/lib/dokku/data/storage/${NAME}:/var/www
+	ssh -t dokku@${DOKKU_HOST} storage:mount ${NAME} /var/lib/dokku/data/storage/${NAME}:/var/www/html
 	ssh -t dokku@${DOKKU_HOST} ps:restart ${NAME}
 
 destroy: validate-app
