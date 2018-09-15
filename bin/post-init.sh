@@ -28,13 +28,13 @@ function mail_relay( \$phpmailer ) {
     \$phpmailer->SMTPAutoTLS = true;
     \$phpmailer->SMTPAuth = true; // Force it to use Username and Password to authenticate
     \$phpmailer->Port = 465;
-    \$phpmailer->Username = ${GMAIL_USERNAME};
-    \$phpmailer->Password = ${GMAIL_APP_PASSWORD};
+    \$phpmailer->Username = '${GMAIL_USERNAME}';
+    \$phpmailer->Password = '${GMAIL_APP_PASSWORD}';
 
     // Additional settings
     \$phpmailer->SMTPSecure = 'ssl'; // Choose SSL or TLS, if necessary for your server
-    \$phpmailer->From = ${GMAIL_USERNAME};
-    \$phpmailer->FromName = ${FROM_NAME};
+    \$phpmailer->From = '${GMAIL_USERNAME}';
+    \$phpmailer->FromName = '${FROM_NAME}';
 }" >> /var/www/html/wp-config.php
 
-sed -i "s/<?php/<?php\n\ndefine( 'WP_CACHE_KEY_SALT', '${WORDPRESS_DB_NAME}' );\ndefine( 'WP_CACHE', true );\n\n\$memcached_servers = array(\n    'default' => array(\n        'memcached:11211'\n    )\n);\n/" /var/www/html/wp-config.php
+sed -i "s/<?php/<?php\n\ndefine( 'WP_CACHE_KEY_SALT', '$(hostname)' );\ndefine( 'WP_CACHE', true );\n\n\$memcached_servers = array(\n    'default' => array(\n        'memcached:11211'\n    )\n);\n/" /var/www/html/wp-config.php
