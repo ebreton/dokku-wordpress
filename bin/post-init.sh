@@ -7,6 +7,33 @@ else
   echo "Customizing wp-config.php, enabling cache"
 fi
 
+# parse MEMCACHED_URL
+
+# extract the protocol
+proto="$(echo ${MEMCACHED_URL} | grep :// | sed -e's,^\(.*://\).*,\1,g')"
+# remove the protocol
+url="$(echo ${MEMCACHED_URL/$proto/})"
+# extract the user (if any)
+credentials="$(echo $url | grep @ | cut -d@ -f1)"
+user="$(echo $credentials | cut -d: -f1)"
+pass="$(echo ${credentials/$user/} | cut -d: -f2)"
+# extract the host
+host="$(echo ${url/$credentials@/} | cut -d/ -f1)"
+hostname="$(echo $host | cut -d: -f1)"
+# by request - try to extract the port
+port="$(echo $host | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+# extract the path (if any)
+path="$(echo $url | grep / | cut -d/ -f2-)"
+
+echo "url: $url"
+echo "  proto: $proto"
+echo "  user: $user"
+echo "  pass: $pass"
+echo "  hostname: $hostname"
+echo "  port: $port"
+echo "  path: $path"
+
+# add object-cache and fix permissions
 cp /var/object-cache.php /var/www/html/wp-content/
 chown -R www-data:www-data /var/www/html
 
@@ -45,4 +72,4 @@ function mail_relay( \$phpmailer ) {
     \$phpmailer->FromName = '${FROM_NAME}';
 }" >> /var/www/html/wp-config.php
 
-sed -i "s/<?php/<?php\n\ndefine( 'WP_CACHE_KEY_SALT', '$(hostname)' );\ndefine( 'WP_CACHE', true );\n\n\$memcached_servers = array(\n    'default' => array(\n        'memcached:11211'\n    )\n);\n/" /var/www/html/wp-config.php
+sed -i "s/<?php/<?php\n\ndefine( 'WP_CACHE_KEY_SALT', '$(hostname)' );\ndefine( 'WP_CACHE', true );\n\n\$memcached_servers = array(\n    'default' => array(\n        '$hostname:$port'\n    )\n);\n/" /var/www/html/wp-config.php

@@ -1,6 +1,7 @@
 DOKKU_HOST:=breton.ch
 DOKKU_LETSENCRYPT_EMAIL:=manu@ibimus.com
 DOKKU_MARIADB_SERVICE:=mysql
+DOKKU_MEMCACHED_SERVICE:=memcached
 
 SITE_TITLE:=Dokku WP
 WP_USER:=admin
@@ -37,6 +38,8 @@ create: validate-app
 	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_EMAIL=${WP_EMAIL}
 	# link with DB
 	ssh -t dokku@${DOKKU_HOST} mariadb:link ${DOKKU_MARIADB_SERVICE} ${NAME}
+	# link with memcached
+	ssh -t dokku@${DOKKU_HOST} memcached:link ${DOKKU_MEMCACHED_SERVICE} ${NAME}
 	# add remote and push app to trigger deployment on host
 	git remote add ${NAME} dokku@${DOKKU_HOST}:${NAME}
 	git push ${NAME} master
@@ -47,6 +50,7 @@ create: validate-app
 	ssh -t dokku@${DOKKU_HOST} ps:restart ${NAME}
 	# initialize WP
 	ssh -t dokku@${DOKKU_HOST} run ${NAME} init.sh
+	ssh -t dokku@${DOKKU_HOST} run ${NAME} post-init.sh
 
 destroy: validate-app
 	ssh -t dokku@${DOKKU_HOST} apps:destroy ${NAME}
@@ -67,6 +71,9 @@ proxy:
 
 storage:
 	ssh -t dokku@${DOKKU_HOST} storage:report ${NAME}
+
+memcached:
+	ssh -t dokku@${DOKKU_HOST} memcached:list
 
 config: validate-app
 	ssh -t dokku@${DOKKU_HOST} config ${NAME}
@@ -102,6 +109,9 @@ endif
 mariadb:
 	docker run --rm --name maria -e MYSQL_ROOT_PASSWORD=secret -d mariadb || true
 
+memcached:
+	docker run --rm --name memcached -d memcached || true
+
 stop:
 	docker stop wp || true
 
@@ -112,17 +122,20 @@ build: stop
 	docker build -t ebreton/wp .
 
 wp: mariadb build
-	docker run --rm --link maria --name wp -d -p 8080:80 \
+	docker run --rm --link maria --link memcached --name wp -d -p 8080:80 \
 		-e DATABASE_URL=mysql://root:secret@maria/wp \
+		-e MEMCACHED_URL=memcached://memcached:11211 \
 		-e SITE_URL=localhost:8080 \
 		-e SITE_TITLE='Dokku WP' \
 		-e WP_USER=admin \
 		-e WP_PASSWORD=admin \
 		-e WP_EMAIL=wp@example.com \
+		-v ${PWD}/html:/var/www/html \
 		ebreton/wp:latest
 
 init: wp
 	docker exec wp init.sh
+	docker exec wp post-init.sh
 
 is-installed:
 	docker exec wp sudo -u www-data wp core is-installed
