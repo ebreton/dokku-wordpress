@@ -17,6 +17,14 @@ export FROM_NAME=${FROM_NAME:-"no name provided"}
 
 # add lines to wp-config.php
 echo "
+// Force SSL and avoid infinite loops behind reverse proxy
+define( 'FORCE_SSL', true );
+define( 'FORCE_SSL_LOGIN', true );
+define( 'FORCE_SSL_ADMIN', true );
+
+if (strpos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false)
+  	$_SERVER['HTTPS']='on';
+
 // allow wordpress to modify files in-place, i.e without FTP
 define('FS_METHOD','direct');
 
