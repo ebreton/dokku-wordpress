@@ -1,4 +1,5 @@
 DOKKU_HOST:=breton.ch
+DOKKU_LETSENCRYPT_EMAIL:=manu@ibimus.com
 DOKKU_MARIADB_SERVICE:=mysql
 
 SITE_URL:=https://${NAME}.${DOKKU_HOST}
@@ -13,13 +14,18 @@ LOCAL_BACKUP_PATH:=~/var/dokku_backup
 ###
 # ONE OFF
 
-init-host:
+init-host:	
+	# set email to use for let's encrypt globally
+	# ! requires: sudo dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+	ssh -t dokku@${DOKKU_HOST} config:set --global DOKKU_LETSENCRYPT_EMAIL=${DOKKU_LETSENCRYPT_EMAIL}
 	# setup MariaDB
+	# ! requires: sudo dokku plugin:install https://github.com/dokku/dokku-mariadb.git
 	ssh -t dokku@${DOKKU_HOST} mariadb:create ${DOKKU_MARIADB_SERVICE} || true
 	# pull initial docker image for Wordpress
-	ssh ${DOKKU_HOST} docker pull wordpress:4.9-php5.6-apache
+	ssh -t ${DOKKU_HOST} docker pull wordpress:4.9-php5.6-apache
 	# and tag it on host to make it available to dokku
-	ssh ${DOKKU_HOST} docker tag wordpress:4.9-php5.6-apache dokku/wordpress:4.9-fpm-alpine
+	ssh -t ${DOKKU_HOST} docker tag wordpress:4.9-php5.6-apache dokku/wordpress:4.9-fpm-alpine
+
 
 ###
 # CREATE & DESTROY
@@ -49,6 +55,7 @@ destroy: validate-app
 	ssh -t dokku@${DOKKU_HOST} apps:destroy ${NAME}
 	git remote remove ${NAME}
 
+
 ###
 # MONITORING
 
@@ -64,6 +71,7 @@ proxy:
 storage:
 	ssh -t dokku@${DOKKU_HOST} storage:report ${NAME}
 
+
 ###
 # BACKUP & RESTORE
 
@@ -78,6 +86,7 @@ backup: validate-app
 restore: validate-app
 	rsync -av ${LOCAL_BACKUP_PATH}/${NAME} ${DOKKU_HOST}:/var/lib/dokku/data/storage/
 
+
 ###
 # INPUT VALIDATION
 
@@ -85,6 +94,7 @@ validate-app:
 ifndef NAME
 	$(error NAME is not set)
 endif
+
 
 ###
 # LOCAL TESTING
