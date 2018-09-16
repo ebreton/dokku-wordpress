@@ -2,7 +2,6 @@ DOKKU_HOST:=breton.ch
 DOKKU_LETSENCRYPT_EMAIL:=manu@ibimus.com
 DOKKU_MARIADB_SERVICE:=mysql
 
-SITE_URL:=https://${NAME}.${DOKKU_HOST}
 SITE_TITLE:=Dokku WP
 WP_USER:=admin
 WP_PASSWORD:=admin
@@ -23,8 +22,6 @@ init-host:
 	ssh -t dokku@${DOKKU_HOST} mariadb:create ${DOKKU_MARIADB_SERVICE} || true
 	# pull initial docker image for Wordpress
 	ssh -t ${DOKKU_HOST} docker pull wordpress:4.9-php5.6-apache
-	# and tag it on host to make it available to dokku
-	ssh -t ${DOKKU_HOST} docker tag wordpress:4.9-php5.6-apache dokku/wordpress:4.9-fpm-alpine
 
 
 ###
@@ -33,7 +30,7 @@ init-host:
 create: validate-app
 	# create an app and set environment variable+port before 1st deployment
 	ssh -t dokku@${DOKKU_HOST} apps:create ${NAME}
-	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_URL=${SITE_URL}
+	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_URL=https://${NAME}.${DOKKU_HOST}
 	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} SITE_TITLE=\"${SITE_TITLE}\"
 	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_USER=\"${WP_USER}\"
 	ssh -t dokku@${DOKKU_HOST} config:set ${NAME} WP_PASSWORD=\"${WP_PASSWORD}\"
@@ -70,6 +67,9 @@ proxy:
 
 storage:
 	ssh -t dokku@${DOKKU_HOST} storage:report ${NAME}
+
+config: validate-app
+	ssh -t dokku@${DOKKU_HOST} config ${NAME}
 
 
 ###
