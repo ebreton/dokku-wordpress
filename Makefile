@@ -130,7 +130,6 @@ wp: mariadb build
 		-e WP_USER=admin \
 		-e WP_PASSWORD=admin \
 		-e WP_EMAIL=wp@example.com \
-		-v ${PWD}/html:/var/www/html \
 		ebreton/wp:latest
 
 init: wp
@@ -140,5 +139,5 @@ init: wp
 is-installed:
 	docker exec wp sudo -u www-data wp core is-installed
 
-exec:
+enter:
 	docker exec -it wp bash

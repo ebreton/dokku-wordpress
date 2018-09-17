@@ -5,6 +5,7 @@ RUN apt-get update \
         sudo \
         mysql-client \
         libmemcached-dev \
+        vim \
         tidy \
         csstidy \
         zlib1g-dev \
